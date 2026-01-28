@@ -7,7 +7,7 @@
 package waBotMetadata
 
 import (
-	waCommon "go.mau.fi/whatsmeow/proto/waCommon"
+	waCommon "github.com/song-xiang13/whatsmeow/proto/waCommon"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

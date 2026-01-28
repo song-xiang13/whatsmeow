@@ -7,8 +7,8 @@
 package waWeb
 
 import (
-	waCommon "go.mau.fi/whatsmeow/proto/waCommon"
-	waE2E "go.mau.fi/whatsmeow/proto/waE2E"
+	waCommon "github.com/song-xiang13/whatsmeow/proto/waCommon"
+	waE2E "github.com/song-xiang13/whatsmeow/proto/waE2E"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

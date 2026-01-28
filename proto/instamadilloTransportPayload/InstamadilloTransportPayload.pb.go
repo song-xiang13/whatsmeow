@@ -7,9 +7,9 @@
 package instamadilloTransportPayload
 
 import (
-	instamadilloAddMessage "go.mau.fi/whatsmeow/proto/instamadilloAddMessage"
-	instamadilloDeleteMessage "go.mau.fi/whatsmeow/proto/instamadilloDeleteMessage"
-	instamadilloSupplementMessage "go.mau.fi/whatsmeow/proto/instamadilloSupplementMessage"
+	instamadilloAddMessage "github.com/song-xiang13/whatsmeow/proto/instamadilloAddMessage"
+	instamadilloDeleteMessage "github.com/song-xiang13/whatsmeow/proto/instamadilloDeleteMessage"
+	instamadilloSupplementMessage "github.com/song-xiang13/whatsmeow/proto/instamadilloSupplementMessage"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

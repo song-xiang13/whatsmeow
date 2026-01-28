@@ -7,9 +7,9 @@
 package waSyncAction
 
 import (
-	waChatLockSettings "go.mau.fi/whatsmeow/proto/waChatLockSettings"
-	waCommon "go.mau.fi/whatsmeow/proto/waCommon"
-	waDeviceCapabilities "go.mau.fi/whatsmeow/proto/waDeviceCapabilities"
+	waChatLockSettings "github.com/song-xiang13/whatsmeow/proto/waChatLockSettings"
+	waCommon "github.com/song-xiang13/whatsmeow/proto/waCommon"
+	waDeviceCapabilities "github.com/song-xiang13/whatsmeow/proto/waDeviceCapabilities"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

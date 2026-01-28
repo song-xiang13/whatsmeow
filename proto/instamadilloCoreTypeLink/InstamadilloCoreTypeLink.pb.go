@@ -7,7 +7,7 @@
 package instamadilloCoreTypeLink
 
 import (
-	instamadilloCoreTypeMedia "go.mau.fi/whatsmeow/proto/instamadilloCoreTypeMedia"
+	instamadilloCoreTypeMedia "github.com/song-xiang13/whatsmeow/proto/instamadilloCoreTypeMedia"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

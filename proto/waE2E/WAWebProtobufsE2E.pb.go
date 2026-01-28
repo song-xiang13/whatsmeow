@@ -7,12 +7,12 @@
 package waE2E
 
 import (
-	waAICommon "go.mau.fi/whatsmeow/proto/waAICommon"
-	waAdv "go.mau.fi/whatsmeow/proto/waAdv"
-	waCommon "go.mau.fi/whatsmeow/proto/waCommon"
-	waCompanionReg "go.mau.fi/whatsmeow/proto/waCompanionReg"
-	waMmsRetry "go.mau.fi/whatsmeow/proto/waMmsRetry"
-	waStatusAttributions "go.mau.fi/whatsmeow/proto/waStatusAttributions"
+	waAICommon "github.com/song-xiang13/whatsmeow/proto/waAICommon"
+	waAdv "github.com/song-xiang13/whatsmeow/proto/waAdv"
+	waCommon "github.com/song-xiang13/whatsmeow/proto/waCommon"
+	waCompanionReg "github.com/song-xiang13/whatsmeow/proto/waCompanionReg"
+	waMmsRetry "github.com/song-xiang13/whatsmeow/proto/waMmsRetry"
+	waStatusAttributions "github.com/song-xiang13/whatsmeow/proto/waStatusAttributions"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

@@ -7,13 +7,13 @@
 package instamadilloAddMessage
 
 import (
-	instamadilloCoreTypeActionLog "go.mau.fi/whatsmeow/proto/instamadilloCoreTypeActionLog"
-	instamadilloCoreTypeAdminMessage "go.mau.fi/whatsmeow/proto/instamadilloCoreTypeAdminMessage"
-	instamadilloCoreTypeCollection "go.mau.fi/whatsmeow/proto/instamadilloCoreTypeCollection"
-	instamadilloCoreTypeLink "go.mau.fi/whatsmeow/proto/instamadilloCoreTypeLink"
-	instamadilloCoreTypeMedia "go.mau.fi/whatsmeow/proto/instamadilloCoreTypeMedia"
-	instamadilloCoreTypeText "go.mau.fi/whatsmeow/proto/instamadilloCoreTypeText"
-	instamadilloXmaContentRef "go.mau.fi/whatsmeow/proto/instamadilloXmaContentRef"
+	instamadilloCoreTypeActionLog "github.com/song-xiang13/whatsmeow/proto/instamadilloCoreTypeActionLog"
+	instamadilloCoreTypeAdminMessage "github.com/song-xiang13/whatsmeow/proto/instamadilloCoreTypeAdminMessage"
+	instamadilloCoreTypeCollection "github.com/song-xiang13/whatsmeow/proto/instamadilloCoreTypeCollection"
+	instamadilloCoreTypeLink "github.com/song-xiang13/whatsmeow/proto/instamadilloCoreTypeLink"
+	instamadilloCoreTypeMedia "github.com/song-xiang13/whatsmeow/proto/instamadilloCoreTypeMedia"
+	instamadilloCoreTypeText "github.com/song-xiang13/whatsmeow/proto/instamadilloCoreTypeText"
+	instamadilloXmaContentRef "github.com/song-xiang13/whatsmeow/proto/instamadilloXmaContentRef"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

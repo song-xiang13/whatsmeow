@@ -1,6 +1,6 @@
 syntax = "proto2";
 package WAAICommon;
-option go_package = "go.mau.fi/whatsmeow/proto/waAICommon";
+option go_package = "github.com/song-xiang13/whatsmeow/proto/waAICommon";
 
 import "waCommon/WACommon.proto";
 

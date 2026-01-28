@@ -7,8 +7,8 @@
 package waGroupHistory
 
 import (
-	waCommon "go.mau.fi/whatsmeow/proto/waCommon"
-	waWeb "go.mau.fi/whatsmeow/proto/waWeb"
+	waCommon "github.com/song-xiang13/whatsmeow/proto/waCommon"
+	waWeb "github.com/song-xiang13/whatsmeow/proto/waWeb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

@@ -7,7 +7,7 @@
 package waConsumerApplicationParameterised
 
 import (
-	waCommonParameterised "go.mau.fi/whatsmeow/proto/waCommonParameterised"
+	waCommonParameterised "github.com/song-xiang13/whatsmeow/proto/waCommonParameterised"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
