@@ -25,12 +25,12 @@ import (
 	"github.com/boombuler/barcode/qr"
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
-	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/proto/waHistorySync"
-	"go.mau.fi/whatsmeow/store/sqlstore"
-	"go.mau.fi/whatsmeow/types"
-	"go.mau.fi/whatsmeow/types/events"
-	waLog "go.mau.fi/whatsmeow/util/log"
+	"github.com/song-xiang13/whatsmeow"
+	"github.com/song-xiang13/whatsmeow/proto/waHistorySync"
+	"github.com/song-xiang13/whatsmeow/store/sqlstore"
+	"github.com/song-xiang13/whatsmeow/types"
+	"github.com/song-xiang13/whatsmeow/types/events"
+	waLog "github.com/song-xiang13/whatsmeow/util/log"
 )
 
 const ignoreDir = "./zzz/"

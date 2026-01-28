@@ -17,11 +17,11 @@ import (
 	"github.com/beeper/argo-go/codec"
 	"github.com/beeper/argo-go/pkg/buf"
 
-	"go.mau.fi/whatsmeow/argo"
-	waBinary "go.mau.fi/whatsmeow/binary"
-	"go.mau.fi/whatsmeow/proto/waWa6"
-	"go.mau.fi/whatsmeow/store"
-	"go.mau.fi/whatsmeow/types"
+	"github.com/song-xiang13/whatsmeow/argo"
+	waBinary "github.com/song-xiang13/whatsmeow/binary"
+	"github.com/song-xiang13/whatsmeow/proto/waWa6"
+	"github.com/song-xiang13/whatsmeow/store"
+	"github.com/song-xiang13/whatsmeow/types"
 )
 
 // NewsletterSubscribeLiveUpdates subscribes to receive live updates from a WhatsApp channel temporarily (for the duration returned).

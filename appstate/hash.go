@@ -14,9 +14,9 @@ import (
 	"fmt"
 	"hash"
 
-	"go.mau.fi/whatsmeow/appstate/lthash"
-	"go.mau.fi/whatsmeow/proto/waServerSync"
-	"go.mau.fi/whatsmeow/proto/waSyncAction"
+	"github.com/song-xiang13/whatsmeow/appstate/lthash"
+	"github.com/song-xiang13/whatsmeow/proto/waServerSync"
+	"github.com/song-xiang13/whatsmeow/proto/waSyncAction"
 )
 
 type Mutation struct {
