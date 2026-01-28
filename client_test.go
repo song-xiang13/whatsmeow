@@ -8,32 +8,265 @@ package whatsmeow_test
 
 import (
 	"context"
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"image/png"
+	"log"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
+	"testing"
+	"time"
 
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
-func eventHandler(evt interface{}) {
-	switch v := evt.(type) {
-	case *events.Message:
-		fmt.Println("Received a message!", v.Message.GetConversation())
+const ignoreDir = "./zzz/"
+
+func printStr(str1 any) string {
+	str := fmt.Sprintf("%+v", str1)
+	if len(str) <= 2000 {
+		return str
+	}
+
+	return string([]rune(str)[:2000])
+}
+
+func writeConversationsCSV(path string, conversations []*waHistorySync.Conversation) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+	defer w.Flush()
+
+	header := []string{
+		"用户名",
+		"谁创建",
+		"NEWJID",
+		"显示名称",
+		"备注/名称",
+		"未读消息数",
+		"未读@数",
+		"是否已归档",
+		"置顶等级",
+		"是否只读",
+		"是否客服会话",
+		"静音结束时间ms",
+		"静音结束时间ISO",
+		"最后消息时间ms",
+		"最后消息时间ISO",
+		"会话时间戳ms",
+		"会话时间戳ISO",
+		"参与者数量",
+		"参与者列表",
+	}
+	if err := w.Write(header); err != nil {
+		return err
+	}
+
+	formatTime := func(ms uint64) (string, string) {
+		if ms == 0 {
+			return "0", ""
+		}
+		t := time.UnixMilli(int64(ms)).UTC()
+		return strconv.FormatUint(ms, 10), t.Format(time.RFC3339)
+	}
+
+	for _, conv := range conversations {
+		log.Printf("GetMuteEndTime:%d\nGetLastMsgTimestamp:%d\nGetConversationTimestamp:%d\n",
+			conv.GetMuteEndTime(), conv.GetLastMsgTimestamp(), conv.GetConversationTimestamp())
+		pMuteMs, pMuteISO := formatTime(conv.GetMuteEndTime())
+		lastMsgMs, lastMsgISO := formatTime(conv.GetLastMsgTimestamp())
+		convMs, convISO := formatTime(conv.GetConversationTimestamp())
+
+		participants := make([]string, 0, len(conv.GetParticipant()))
+		for _, p := range conv.GetParticipant() {
+			participants = append(participants, p.GetUserJID())
+		}
+
+		row := []string{
+			conv.GetUsername(),
+			conv.GetCreatedBy(),
+			conv.GetNewJID(),
+			conv.GetDisplayName(),
+			conv.GetName(),
+			strconv.FormatUint(uint64(conv.GetUnreadCount()), 10),
+			strconv.FormatUint(uint64(conv.GetUnreadMentionCount()), 10),
+			strconv.FormatBool(conv.GetArchived()),
+			strconv.FormatUint(uint64(conv.GetPinned()), 10),
+			strconv.FormatBool(conv.GetReadOnly()),
+			strconv.FormatBool(conv.GetSupport()),
+			pMuteMs,
+			pMuteISO,
+			lastMsgMs,
+			lastMsgISO,
+			convMs,
+			convISO,
+			strconv.Itoa(len(participants)),
+			strings.Join(participants, "|"),
+		}
+		if err := w.Write(row); err != nil {
+			return err
+		}
+	}
+
+	w.Flush()
+	return w.Error()
+}
+
+func WriteFile(name string, msg any) {
+	name = ignoreDir + name + ".json"
+	b, _ := json.Marshal(msg)
+	err := os.WriteFile(name, b, os.ModePerm)
+	if err != nil {
+		log.Println("Error writing file:", name, err)
 	}
 }
 
-func Example() {
+func mergeContactInfo(existing, newInfo types.ContactInfo) types.ContactInfo {
+	if existing.FirstName == "" {
+		existing.FirstName = newInfo.FirstName
+	}
+	if existing.FullName == "" {
+		existing.FullName = newInfo.FullName
+	}
+	if existing.PushName == "" {
+		existing.PushName = newInfo.PushName
+	}
+	if existing.BusinessName == "" {
+		existing.BusinessName = newInfo.BusinessName
+	}
+	if existing.RedactedPhone == "" {
+		existing.RedactedPhone = newInfo.RedactedPhone
+	}
+	return existing
+}
+
+func dedupeContacts(ctx context.Context, client *whatsmeow.Client, contacts map[types.JID]types.ContactInfo) map[types.JID]types.ContactInfo {
+	out := make(map[types.JID]types.ContactInfo)
+	selfPN := client.Store.GetJID().ToNonAD()
+	selfLID := client.Store.GetLID().ToNonAD()
+
+	for jid, info := range contacts {
+		//fmt.Printf("dedupeContacts -- %#v\n", jid)
+		base := jid.ToNonAD()
+		if base == selfPN || (!selfLID.IsEmpty() && base == selfLID) {
+			// skip self (both PN and LID)
+			continue
+		}
+
+		canonical := base
+		if canonical.Server == types.DefaultUserServer {
+			if lid, err := client.Store.LIDs.GetLIDForPN(ctx, base); err == nil && lid.User != "" {
+				canonical = lid.ToNonAD()
+			}
+		}
+
+		log.Printf("dedupeContacts -- %s\n", canonical)
+		if existing, ok := out[canonical]; ok {
+			out[canonical] = mergeContactInfo(existing, info)
+			//log.Printf("mergeContactInfo -- %+v %+v\n", canonical, info)
+		} else {
+			out[canonical] = info
+		}
+	}
+	return out
+}
+
+func makeEventHandler() func(evt interface{}) {
+	return func(evt interface{}) {
+		log.Printf("eventHandler -- %T %s\n", evt, printStr(evt))
+		switch v := evt.(type) {
+		case *events.HistorySync:
+			//v.Data.GetSyncType() == waHistorySync.HistorySync_PUSH_NAME
+			WriteFile("HistorySync_"+v.Data.GetSyncType().String(), v.Data)
+			switch v.Data.GetSyncType() {
+			case waHistorySync.HistorySync_INITIAL_BOOTSTRAP: // 首条
+				v.Data.GetPhoneNumberToLidMappings() // 就是会话列表数
+			case waHistorySync.HistorySync_PUSH_NAME: // 推送会话列表的 PushName集合
+				log.Printf("HistorySync_PUSH_NAME -- PushNameCount:%d\n", len(v.Data.GetPushnames()))
+				for _, p := range v.Data.GetPushnames() {
+					log.Printf("HistorySync_PUSH_NAME -- PushName: ID:%s PushName:%s", p.GetID(), p.GetPushname())
+				}
+			case waHistorySync.HistorySync_RECENT:
+				log.Printf("HistorySync_RECENT -- GetConversations:%d\n", len(v.Data.GetConversations()))
+				for _, p := range v.Data.GetConversations() {
+					log.Printf("HistorySync_RECENT -- Conversation ID:%s msg.len:%d", p.GetID(), len(p.Messages))
+				}
+			case waHistorySync.HistorySync_ON_DEMAND:
+
+			}
+			//err := writeConversationsCSV("conversations.csv", v.Data.GetConversations())
+			//if err != nil {
+			//	log.Println("Error writing conversations.csv:", err)
+			//}
+		case *events.Archive:
+		case *events.Message: // 自己发的消息
+			b, _ := json.Marshal(v.Message)
+			b2, _ := json.Marshal(v.Info)
+			//v.Message.GetConversation()
+			//v.Info.RecipientAlt  -- 别人接收时有 8618587904107@s.whatsapp.net
+			//v.Info.SenderAlt -- 别人发送时有
+			//v.Info.Timestamp
+			//v.Info.PushName
+			//v.Info.Type
+			//v.Info.ID -- 消息id
+			WriteFile("v.Message.json", b)
+			WriteFile("v.Info.json", b2)
+			log.Println("Received a message!", v.Message.GetConversation())
+		case *events.PushName:
+			log.Printf("Received a PushName: %+v -- Msg:%+v\n", v, v.Message)
+		case *events.Receipt: // 消息回执，可能会发重复的好几条
+		//v.MessageIDs
+		case *events.AppState: // 很多场景，如
+			//v.GetTimestamp() ms
+			//v.AgentAction 设置关联设备名称 {name:"dddw"  deviceID:9  isDeleted:false}
+		}
+	}
+}
+
+func writeQRPNG(path, content string) error {
+	code, err := qr.Encode(content, qr.M, qr.Auto)
+	if err != nil {
+		return err
+	}
+	scaled, err := barcode.Scale(code, 256, 256)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return png.Encode(f, scaled)
+}
+
+func TestExample(t *testing.T) {
 	// |------------------------------------------------------------------------------------------------------|
 	// | NOTE: You must also import the appropriate DB connector, e.g. github.com/mattn/go-sqlite3 for SQLite |
 	// |------------------------------------------------------------------------------------------------------|
 
 	dbLog := waLog.Stdout("Database", "DEBUG", true)
 	ctx := context.Background()
-	container, err := sqlstore.New(ctx, "sqlite3", "file:examplestore.db?_foreign_keys=on", dbLog)
+	container, err := sqlstore.New(ctx, "sqlite3", fmt.Sprintf("file:%sexamplestore.db?_foreign_keys=on", ignoreDir), dbLog)
 	if err != nil {
 		panic(err)
 	}
@@ -42,9 +275,10 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	clientLog := waLog.Stdout("Client", "DEBUG", true)
+	clientLog := waLog.Stdout("Client", "INFO", true)
 	client := whatsmeow.NewClient(deviceStore, clientLog)
-	client.AddEventHandler(eventHandler)
+
+	client.AddEventHandler(makeEventHandler())
 
 	if client.Store.ID == nil {
 		// No ID stored, new login
@@ -55,12 +289,15 @@ func Example() {
 		}
 		for evt := range qrChan {
 			if evt.Event == "code" {
-				// Render the QR code here
-				// e.g. qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-				// or just manually `echo 2@... | qrencode -t ansiutf8` in a terminal
-				fmt.Println("QR code:", evt.Code)
+				// 生成 PNG 登录二维码，方便手机扫码
+				const qrPath = "./zzz/login-qr.png"
+				if err := writeQRPNG(qrPath, evt.Code); err != nil {
+					log.Println("生成二维码失败:", err, "请手动扫描文本:", evt.Code)
+				} else {
+					log.Println("二维码已生成:", qrPath, "若无法打开，请手动扫描文本:", evt.Code)
+				}
 			} else {
-				fmt.Println("Login event:", evt.Event)
+				log.Println("Login event:", evt.Event)
 			}
 		}
 	} else {
@@ -68,6 +305,53 @@ func Example() {
 		err = client.Connect()
 		if err != nil {
 			panic(err)
+		}
+
+		rawList, err := client.Store.Contacts.GetAllContacts(context.Background())
+		if err != nil {
+			panic(err)
+		}
+		contacts := dedupeContacts(context.Background(), client, rawList)
+		//for jid, c := range contacts {
+		//	log.Printf("Contact %+v -- Contact:%+v", jid, c)
+		//}
+		log.Printf("Contact Count:%d rawList:%d", len(contacts), len(rawList))
+
+		log.Printf("GetLID -- %+v\n", client.Store.GetLID())
+		// 获取头像
+		infomap, _ := client.GetUserInfo(ctx, []types.JID{client.Store.GetLID()})
+		for _, v := range infomap {
+			//v.Status 是用户文字状态，一般非空
+			//v.PictureID 用户头像ID，为空表示无头像
+			//v.Devices 账户登录的设备JIDs，含当前
+			log.Printf("GetUserInfo -- %+v\n", v)
+		}
+
+		glist, _ := client.GetJoinedGroups(ctx)
+		for _, g := range glist {
+			log.Printf("GetJoinedGroups -- %+v\n", g.Name)
+			WriteFile("group_msg_"+g.Name, g)
+		}
+		// 隐私
+		s := client.GetPrivacySettings(ctx)
+		log.Printf("GetPrivacySettings -- %+v\n", s)
+		// 查询会话数量
+		imap, err := client.Store.MsgSecrets.GetMessageSessionNum(ctx)
+		if err != nil {
+			log.Println("GetMessageSessionNum failed --", err)
+		} else {
+			for _, v := range imap {
+				log.Printf("GetMessageSessionNum OK -- %+v\n", v)
+			}
+		}
+
+		clist, err := client.Store.ChatSettings.GetAllChatSettings(ctx)
+		if err != nil {
+			log.Println("GetAllChatSettings --", err)
+		} else {
+			for _, v := range clist {
+				log.Printf("GetAllChatSettings -- %+v\n", v)
+			}
 		}
 	}
 

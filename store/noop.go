@@ -208,6 +208,10 @@ func (n *NoopStore) GetChatSettings(ctx context.Context, chat types.JID) (types.
 	return types.LocalChatSettings{}, n.Error
 }
 
+func (n *NoopStore) GetAllChatSettings(ctx context.Context) ([]types.LocalChatSettings, error) {
+	return nil, n.Error
+}
+
 func (n *NoopStore) PutMessageSecrets(ctx context.Context, inserts []MessageSecretInsert) error {
 	return n.Error
 }
@@ -218,6 +222,10 @@ func (n *NoopStore) PutMessageSecret(ctx context.Context, chat, sender types.JID
 
 func (n *NoopStore) GetMessageSecret(ctx context.Context, chat, sender types.JID, id types.MessageID) ([]byte, types.JID, error) {
 	return nil, types.EmptyJID, n.Error
+}
+
+func (n *NoopStore) GetMessageSessionNum(ctx context.Context) (map[types.JID]MessageSession, error) {
+	return nil, n.Error
 }
 
 func (n *NoopStore) PutPrivacyTokens(ctx context.Context, tokens ...PrivacyToken) error {

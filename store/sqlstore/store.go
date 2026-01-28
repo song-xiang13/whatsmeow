@@ -831,6 +831,9 @@ const (
 	getChatSettingsQuery = `
 		SELECT muted_until, pinned, archived FROM whatsmeow_chat_settings WHERE our_jid=$1 AND chat_jid=$2
 	`
+	getAllChatSettingsQuery = `
+		SELECT chat_jid, muted_until, pinned, archived FROM whatsmeow_chat_settings WHERE our_jid=$1
+	`
 )
 
 func (s *SQLStore) PutMutedUntil(ctx context.Context, chat types.JID, mutedUntil time.Time) error {
@@ -872,6 +875,36 @@ func (s *SQLStore) GetChatSettings(ctx context.Context, chat types.JID) (setting
 	return
 }
 
+func (s *SQLStore) GetAllChatSettings(ctx context.Context) ([]types.LocalChatSettings, error) {
+	rows, err := s.db.Query(ctx, getAllChatSettingsQuery, s.JID)
+	if err != nil {
+		return nil, err
+	}
+	settings := make([]types.LocalChatSettings, 0)
+	for rows.Next() {
+		var chat types.JID
+		var mutedUntil int64
+		var pinned, archived bool
+		err = rows.Scan(&chat, &mutedUntil, &pinned, &archived)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %w", err)
+		}
+		current := types.LocalChatSettings{
+			Found:    true,
+			JID:      chat,
+			Pinned:   pinned,
+			Archived: archived,
+		}
+		if mutedUntil < 0 {
+			current.MutedUntil = store.MutedForever
+		} else if mutedUntil > 0 {
+			current.MutedUntil = time.Unix(mutedUntil, 0)
+		}
+		settings = append(settings, current)
+	}
+	return settings, nil
+}
+
 const (
 	putMsgSecret = `
 		INSERT INTO whatsmeow_message_secrets (our_jid, chat_jid, sender_jid, message_id, key)
@@ -896,6 +929,9 @@ const (
 					THEN (SELECT lid || '@lid' FROM whatsmeow_lid_map WHERE pn=replace($3, '@s.whatsapp.net', ''))
 			END
 		))
+	`
+	getMessageSessionNumQuery = `
+		SELECT chat_jid, count(*) FROM whatsmeow_message_secrets WHERE our_jid=$1 GROUP BY chat_jid
 	`
 )
 
@@ -925,6 +961,28 @@ func (s *SQLStore) GetMessageSecret(ctx context.Context, chat, sender types.JID,
 		err = nil
 	}
 	return
+}
+
+func (s *SQLStore) GetMessageSessionNum(ctx context.Context) (map[types.JID]store.MessageSession, error) {
+	rows, err := s.db.Query(ctx, getMessageSessionNumQuery, s.JID)
+	if err != nil {
+		return nil, err
+	}
+	output := make(map[types.JID]store.MessageSession)
+	for rows.Next() {
+		var chat string
+		var count int
+		err = rows.Scan(&chat, &count)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %w", err)
+		}
+		jid, err := types.ParseJID(chat)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse chat JID %q: %w", chat, err)
+		}
+		output[jid] = store.MessageSession{Chat: jid, Num: count}
+	}
+	return output, nil
 }
 
 const (

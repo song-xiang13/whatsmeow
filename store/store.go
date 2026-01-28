@@ -115,6 +115,7 @@ type ChatSettingsStore interface {
 	PutPinned(ctx context.Context, chat types.JID, pinned bool) error
 	PutArchived(ctx context.Context, chat types.JID, archived bool) error
 	GetChatSettings(ctx context.Context, chat types.JID) (types.LocalChatSettings, error)
+	GetAllChatSettings(ctx context.Context) ([]types.LocalChatSettings, error)
 }
 
 type DeviceContainer interface {
@@ -129,10 +130,17 @@ type MessageSecretInsert struct {
 	Secret []byte
 }
 
+type MessageSession struct {
+	Chat types.JID
+	Num  int
+}
+
 type MsgSecretStore interface {
 	PutMessageSecrets(ctx context.Context, inserts []MessageSecretInsert) error
 	PutMessageSecret(ctx context.Context, chat, sender types.JID, id types.MessageID, secret []byte) error
 	GetMessageSecret(ctx context.Context, chat, sender types.JID, id types.MessageID) ([]byte, types.JID, error)
+	// GetMessageSessionNum 查询简单的会话列表以及会话内的消息数量
+	GetMessageSessionNum(ctx context.Context) (map[types.JID]MessageSession, error)
 }
 
 type PrivacyToken struct {

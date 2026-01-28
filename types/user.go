@@ -75,8 +75,8 @@ type ContactInfo struct {
 
 // LocalChatSettings contains the cached local settings for a chat.
 type LocalChatSettings struct {
-	Found bool
-
+	Found      bool
+	JID        JID
 	MutedUntil time.Time
 	Pinned     bool
 	Archived   bool
