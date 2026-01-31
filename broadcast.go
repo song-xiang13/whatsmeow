@@ -56,7 +56,7 @@ func (cli *Client) getStatusBroadcastRecipients(ctx context.Context) ([]types.JI
 	}
 
 	// Blacklist or all contacts mode. Find all contacts from database, then filter them appropriately.
-	contacts, err := cli.Store.Contacts.GetAllContacts(ctx)
+	contacts, err := cli.Store.Contacts.GetAllContacts(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contact list from db: %w", err)
 	}

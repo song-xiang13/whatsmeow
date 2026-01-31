@@ -48,7 +48,7 @@ type SQLStore struct {
 	preKeyLock sync.Mutex
 
 	contactCache     map[types.JID]*types.ContactInfo
-	contactCacheLock sync.Mutex
+	contactCacheLock sync.RWMutex
 
 	migratedPNSessionsCache *exsync.Set[string]
 }
@@ -794,14 +794,26 @@ func (s *SQLStore) GetContact(ctx context.Context, user types.JID) (types.Contac
 	return *info, nil
 }
 
-func (s *SQLStore) GetAllContacts(ctx context.Context) (map[types.JID]types.ContactInfo, error) {
-	s.contactCacheLock.Lock()
-	defer s.contactCacheLock.Unlock()
+func (s *SQLStore) GetAllContacts(ctx context.Context, skipCache bool) (map[types.JID]types.ContactInfo, error) {
+	// 如果不跳过缓存且缓存中有数据，直接返回缓存内容
+	if !skipCache && len(s.contactCache) > 0 {
+		s.contactCacheLock.RLock()
+		defer s.contactCacheLock.RUnlock()
+
+		output := make(map[types.JID]types.ContactInfo, len(s.contactCache))
+		for jid, info := range s.contactCache {
+			output[jid] = *info
+		}
+		return output, nil
+	}
+
+	// 否则从数据库查询
 	rows, err := s.dbQuery(ctx, getAllContactsQuery, s.JID)
 	if err != nil {
 		return nil, err
 	}
-	output := make(map[types.JID]types.ContactInfo, len(s.contactCache))
+
+	output := make(map[types.JID]types.ContactInfo)
 	for rows.Next() {
 		var jid types.JID
 		var first, full, push, business, redactedPhone sql.NullString
@@ -818,8 +830,13 @@ func (s *SQLStore) GetAllContacts(ctx context.Context) (map[types.JID]types.Cont
 			RedactedPhone: redactedPhone.String,
 		}
 		output[jid] = info
+
+		// 更新缓存
+		s.contactCacheLock.Lock()
 		s.contactCache[jid] = &info
+		s.contactCacheLock.Unlock()
 	}
+
 	return output, nil
 }
 

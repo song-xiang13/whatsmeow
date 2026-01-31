@@ -105,7 +105,7 @@ type ContactStore interface {
 	PutAllContactNames(ctx context.Context, contacts []ContactEntry) error
 	PutManyRedactedPhones(ctx context.Context, entries []RedactedPhoneEntry) error
 	GetContact(ctx context.Context, user types.JID) (types.ContactInfo, error)
-	GetAllContacts(ctx context.Context) (map[types.JID]types.ContactInfo, error)
+	GetAllContacts(ctx context.Context, skipCache bool) (map[types.JID]types.ContactInfo, error)
 }
 
 var MutedForever = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)

@@ -307,7 +307,7 @@ func TestExample(t *testing.T) {
 			panic(err)
 		}
 
-		rawList, err := client.Store.Contacts.GetAllContacts(context.Background())
+		rawList, err := client.Store.Contacts.GetAllContacts(context.Background(), false)
 		if err != nil {
 			panic(err)
 		}

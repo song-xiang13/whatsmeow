@@ -188,7 +188,7 @@ func (n *NoopStore) GetContact(ctx context.Context, user types.JID) (types.Conta
 	return types.ContactInfo{}, n.Error
 }
 
-func (n *NoopStore) GetAllContacts(ctx context.Context) (map[types.JID]types.ContactInfo, error) {
+func (n *NoopStore) GetAllContacts(ctx context.Context, skipCache bool) (map[types.JID]types.ContactInfo, error) {
 	return nil, n.Error
 }
 
