@@ -468,6 +468,11 @@ func isRetryableConnectError(err error) bool {
 	return false
 }
 
+// ConnectContext connects the client to the WhatsApp web websocket.
+// Warning: You must keep the context parameter alive while the client
+// - is in a connected state, otherwise it will cause the client to disconnect.
+// Advice: Use Conntect() instead, let us use the background context to keep it
+// - alive automatically.
 func (cli *Client) ConnectContext(ctx context.Context) error {
 	if cli == nil {
 		return ErrClientIsNil
