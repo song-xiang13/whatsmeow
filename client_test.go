@@ -265,7 +265,7 @@ func TestExample(t *testing.T) {
 	// |------------------------------------------------------------------------------------------------------|
 
 	dbLog := waLog.Stdout("Database", "DEBUG", true)
-	ctx := context.Background()
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	container, err := sqlstore.New(ctx, "sqlite3", fmt.Sprintf("file:%sexamplestore.db?_foreign_keys=on", ignoreDir), dbLog)
 	if err != nil {
 		panic(err)
@@ -275,7 +275,7 @@ func TestExample(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	clientLog := waLog.Stdout("Client", "INFO", true)
+	clientLog := waLog.Stdout("Client", "DEBUG", true)
 	client := whatsmeow.NewClient(deviceStore, clientLog)
 
 	client.AddEventHandler(makeEventHandler())
@@ -353,6 +353,23 @@ func TestExample(t *testing.T) {
 				log.Printf("GetAllChatSettings -- %+v\n", v)
 			}
 		}
+
+		blist, err := client.GetBlocklist(ctx)
+		if err != nil {
+			log.Println("GetBlocklist --", err)
+		} else {
+			log.Printf("GetBlocklist -- %+v\n", blist)
+		}
+
+		jid := client.Store.GetJID()
+		jid.User = "919314613946@s.whatsapp.net"
+		b, err := client.GetBusinessProfile(ctx, jid)
+		if err != nil {
+			log.Println("GetBusinessProfile --", err)
+		} else {
+			log.Printf("GetBusinessProfile -- %+v\n", b)
+		}
+
 	}
 
 	// Listen to Ctrl+C (you can also do something else that prevents the program from exiting)

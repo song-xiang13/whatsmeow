@@ -96,7 +96,7 @@ func (s *SQLStore) DeleteIdentity(ctx context.Context, address string) error {
 
 func (s *SQLStore) IsTrustedIdentity(ctx context.Context, address string, key [32]byte) (bool, error) {
 	var existingIdentity []byte
-	err := s.db.QueryRow(ctx, getIdentityQuery, s.JID, address).Scan(&existingIdentity)
+	err := s.dbQueryRow(ctx, getIdentityQuery, s.JID, address).Scan(&existingIdentity)
 	if errors.Is(err, sql.ErrNoRows) {
 		// Trust if not known, it'll be saved automatically later
 		return true, nil
@@ -146,7 +146,7 @@ const (
 )
 
 func (s *SQLStore) GetSession(ctx context.Context, address string) (session []byte, err error) {
-	err = s.db.QueryRow(ctx, getSessionQuery, s.JID, address).Scan(&session)
+	err = s.dbQueryRow(ctx, getSessionQuery, s.JID, address).Scan(&session)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = nil
 	}
@@ -154,7 +154,7 @@ func (s *SQLStore) GetSession(ctx context.Context, address string) (session []by
 }
 
 func (s *SQLStore) HasSession(ctx context.Context, address string) (has bool, err error) {
-	err = s.db.QueryRow(ctx, hasSessionQuery, s.JID, address).Scan(&has)
+	err = s.dbQueryRow(ctx, hasSessionQuery, s.JID, address).Scan(&has)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = nil
 	}
@@ -179,7 +179,7 @@ func (s *SQLStore) GetManySessions(ctx context.Context, addresses []string) (map
 	var rows dbutil.Rows
 	var err error
 	if s.db.Dialect == dbutil.Postgres && PostgresArrayWrapper != nil {
-		rows, err = s.db.Query(ctx, getManySessionQueryPostgres, s.JID, PostgresArrayWrapper(addresses))
+		rows, err = s.dbQuery(ctx, getManySessionQueryPostgres, s.JID, PostgresArrayWrapper(addresses))
 	} else {
 		args := make([]any, len(addresses)+1)
 		placeholders := make([]string, len(addresses))
@@ -188,7 +188,7 @@ func (s *SQLStore) GetManySessions(ctx context.Context, addresses []string) (map
 			args[i+1] = addr
 			placeholders[i] = fmt.Sprintf("$%d", i+2)
 		}
-		rows, err = s.db.Query(ctx, fmt.Sprintf(getManySessionQueryGeneric, strings.Join(placeholders, ",")), args...)
+		rows, err = s.dbQuery(ctx, fmt.Sprintf(getManySessionQueryGeneric, strings.Join(placeholders, ",")), args...)
 	}
 	result := make(map[string][]byte, len(addresses))
 	for _, addr := range addresses {
@@ -322,7 +322,7 @@ func (s *SQLStore) genOnePreKey(ctx context.Context, id uint32, markUploaded boo
 
 func (s *SQLStore) getNextPreKeyID(ctx context.Context) (uint32, error) {
 	var lastKeyID sql.NullInt32
-	err := s.db.QueryRow(ctx, getLastPreKeyIDQuery, s.JID).Scan(&lastKeyID)
+	err := s.dbQueryRow(ctx, getLastPreKeyIDQuery, s.JID).Scan(&lastKeyID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to query next prekey ID: %w", err)
 	}
@@ -343,7 +343,7 @@ func (s *SQLStore) GetOrGenPreKeys(ctx context.Context, count uint32) ([]*keys.P
 	s.preKeyLock.Lock()
 	defer s.preKeyLock.Unlock()
 
-	res, err := s.db.Query(ctx, getUnuploadedPreKeysQuery, s.JID, count)
+	res, err := s.dbQuery(ctx, getUnuploadedPreKeysQuery, s.JID, count)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query existing prekeys: %w", err)
 	}
@@ -396,7 +396,7 @@ func scanPreKey(row dbutil.Scannable) (*keys.PreKey, error) {
 }
 
 func (s *SQLStore) GetPreKey(ctx context.Context, id uint32) (*keys.PreKey, error) {
-	return scanPreKey(s.db.QueryRow(ctx, getPreKeyQuery, s.JID, id))
+	return scanPreKey(s.dbQueryRow(ctx, getPreKeyQuery, s.JID, id))
 }
 
 func (s *SQLStore) RemovePreKey(ctx context.Context, id uint32) error {
@@ -410,7 +410,7 @@ func (s *SQLStore) MarkPreKeysAsUploaded(ctx context.Context, upToID uint32) err
 }
 
 func (s *SQLStore) UploadedPreKeyCount(ctx context.Context) (count int, err error) {
-	err = s.db.QueryRow(ctx, getUploadedPreKeyCountQuery, s.JID).Scan(&count)
+	err = s.dbQueryRow(ctx, getUploadedPreKeyCountQuery, s.JID).Scan(&count)
 	return
 }
 
@@ -428,7 +428,7 @@ func (s *SQLStore) PutSenderKey(ctx context.Context, group, user string, session
 }
 
 func (s *SQLStore) GetSenderKey(ctx context.Context, group, user string) (key []byte, err error) {
-	err = s.db.QueryRow(ctx, getSenderKeyQuery, s.JID, group, user).Scan(&key)
+	err = s.dbQueryRow(ctx, getSenderKeyQuery, s.JID, group, user).Scan(&key)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = nil
 	}
@@ -453,7 +453,7 @@ func (s *SQLStore) PutAppStateSyncKey(ctx context.Context, id []byte, key store.
 }
 
 func (s *SQLStore) GetAllAppStateSyncKeys(ctx context.Context) ([]*store.AppStateSyncKey, error) {
-	rows, err := s.db.Query(ctx, getAllAppStateSyncKeysQuery, s.JID)
+	rows, err := s.dbQuery(ctx, getAllAppStateSyncKeysQuery, s.JID)
 	if err != nil {
 		return nil, err
 	}
@@ -473,7 +473,7 @@ func (s *SQLStore) GetAllAppStateSyncKeys(ctx context.Context) ([]*store.AppStat
 
 func (s *SQLStore) GetAppStateSyncKey(ctx context.Context, id []byte) (*store.AppStateSyncKey, error) {
 	var key store.AppStateSyncKey
-	err := s.db.QueryRow(ctx, getAppStateSyncKeyQuery, s.JID, id).Scan(&key.Data, &key.Timestamp, &key.Fingerprint)
+	err := s.dbQueryRow(ctx, getAppStateSyncKeyQuery, s.JID, id).Scan(&key.Data, &key.Timestamp, &key.Fingerprint)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -482,7 +482,7 @@ func (s *SQLStore) GetAppStateSyncKey(ctx context.Context, id []byte) (*store.Ap
 
 func (s *SQLStore) GetLatestAppStateSyncKeyID(ctx context.Context) ([]byte, error) {
 	var keyID []byte
-	err := s.db.QueryRow(ctx, getLatestAppStateSyncKeyIDQuery, s.JID).Scan(&keyID)
+	err := s.dbQueryRow(ctx, getLatestAppStateSyncKeyIDQuery, s.JID).Scan(&keyID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -509,7 +509,7 @@ func (s *SQLStore) PutAppStateVersion(ctx context.Context, name string, version 
 
 func (s *SQLStore) GetAppStateVersion(ctx context.Context, name string) (version uint64, hash [128]byte, err error) {
 	var uncheckedHash []byte
-	err = s.db.QueryRow(ctx, getAppStateVersionQuery, s.JID, name).Scan(&version, &uncheckedHash)
+	err = s.dbQueryRow(ctx, getAppStateVersionQuery, s.JID, name).Scan(&version, &uncheckedHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		// version will be 0 and hash will be an empty array, which is the correct initial state
 		err = nil
@@ -590,7 +590,7 @@ func (s *SQLStore) DeleteAppStateMutationMACs(ctx context.Context, name string, 
 }
 
 func (s *SQLStore) GetAppStateMutationMAC(ctx context.Context, name string, indexMAC []byte) (valueMAC []byte, err error) {
-	err = s.db.QueryRow(ctx, getAppStateMutationMACQuery, s.JID, name, indexMAC).Scan(&valueMAC)
+	err = s.dbQueryRow(ctx, getAppStateMutationMACQuery, s.JID, name, indexMAC).Scan(&valueMAC)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = nil
 	}
@@ -768,7 +768,7 @@ func (s *SQLStore) getContact(ctx context.Context, user types.JID) (*types.Conta
 	}
 
 	var first, full, push, business, redactedPhone sql.NullString
-	err := s.db.QueryRow(ctx, getContactQuery, s.JID, user).Scan(&first, &full, &push, &business, &redactedPhone)
+	err := s.dbQueryRow(ctx, getContactQuery, s.JID, user).Scan(&first, &full, &push, &business, &redactedPhone)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
@@ -797,7 +797,7 @@ func (s *SQLStore) GetContact(ctx context.Context, user types.JID) (types.Contac
 func (s *SQLStore) GetAllContacts(ctx context.Context) (map[types.JID]types.ContactInfo, error) {
 	s.contactCacheLock.Lock()
 	defer s.contactCacheLock.Unlock()
-	rows, err := s.db.Query(ctx, getAllContactsQuery, s.JID)
+	rows, err := s.dbQuery(ctx, getAllContactsQuery, s.JID)
 	if err != nil {
 		return nil, err
 	}
@@ -859,7 +859,7 @@ func (s *SQLStore) PutArchived(ctx context.Context, chat types.JID, archived boo
 
 func (s *SQLStore) GetChatSettings(ctx context.Context, chat types.JID) (settings types.LocalChatSettings, err error) {
 	var mutedUntil int64
-	err = s.db.QueryRow(ctx, getChatSettingsQuery, s.JID, chat).Scan(&mutedUntil, &settings.Pinned, &settings.Archived)
+	err = s.dbQueryRow(ctx, getChatSettingsQuery, s.JID, chat).Scan(&mutedUntil, &settings.Pinned, &settings.Archived)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = nil
 	} else if err != nil {
@@ -876,7 +876,7 @@ func (s *SQLStore) GetChatSettings(ctx context.Context, chat types.JID) (setting
 }
 
 func (s *SQLStore) GetAllChatSettings(ctx context.Context) ([]types.LocalChatSettings, error) {
-	rows, err := s.db.Query(ctx, getAllChatSettingsQuery, s.JID)
+	rows, err := s.dbQuery(ctx, getAllChatSettingsQuery, s.JID)
 	if err != nil {
 		return nil, err
 	}
@@ -956,7 +956,7 @@ func (s *SQLStore) PutMessageSecret(ctx context.Context, chat, sender types.JID,
 }
 
 func (s *SQLStore) GetMessageSecret(ctx context.Context, chat, sender types.JID, id types.MessageID) (secret []byte, realSender types.JID, err error) {
-	err = s.db.QueryRow(ctx, getMsgSecret, s.JID, chat.ToNonAD(), sender.ToNonAD(), id).Scan(&secret, &realSender)
+	err = s.dbQueryRow(ctx, getMsgSecret, s.JID, chat.ToNonAD(), sender.ToNonAD(), id).Scan(&secret, &realSender)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = nil
 	}
@@ -964,7 +964,7 @@ func (s *SQLStore) GetMessageSecret(ctx context.Context, chat, sender types.JID,
 }
 
 func (s *SQLStore) GetMessageSessionNum(ctx context.Context) (map[types.JID]store.MessageSession, error) {
-	rows, err := s.db.Query(ctx, getMessageSessionNumQuery, s.JID)
+	rows, err := s.dbQuery(ctx, getMessageSessionNumQuery, s.JID)
 	if err != nil {
 		return nil, err
 	}
@@ -1024,7 +1024,7 @@ func (s *SQLStore) GetPrivacyToken(ctx context.Context, user types.JID) (*store.
 	var token store.PrivacyToken
 	token.User = user.ToNonAD()
 	var ts int64
-	err := s.db.QueryRow(ctx, getPrivacyToken, s.JID, token.User).Scan(&token.Token, &ts)
+	err := s.dbQueryRow(ctx, getPrivacyToken, s.JID, token.User).Scan(&token.Token, &ts)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -1054,7 +1054,7 @@ const (
 func (s *SQLStore) GetBufferedEvent(ctx context.Context, ciphertextHash [32]byte) (*store.BufferedEvent, error) {
 	var insertTimeMS, serverTimeSeconds int64
 	var buf store.BufferedEvent
-	err := s.db.QueryRow(ctx, getBufferedEventQuery, s.JID, ciphertextHash[:]).Scan(&buf.Plaintext, &serverTimeSeconds, &insertTimeMS)
+	err := s.dbQueryRow(ctx, getBufferedEventQuery, s.JID, ciphertextHash[:]).Scan(&buf.Plaintext, &serverTimeSeconds, &insertTimeMS)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -1085,4 +1085,20 @@ func (s *SQLStore) DeleteOldBufferedHashes(ctx context.Context) error {
 	// so we can safely delete anything older than that.
 	_, err := s.db.Exec(ctx, deleteOldBufferedHashesQuery, time.Now().Add(-14*24*time.Hour).UnixMilli())
 	return err
+}
+
+func (s *SQLStore) dbQuery(ctx context.Context, query string, args ...any) (dbutil.Rows, error) {
+	var st = time.Now()
+	defer func() {
+		s.log.Infof("SQL query %s -- args %#v took %s", query, args, time.Since(st))
+	}()
+	return s.db.Query(ctx, query, args...)
+}
+
+func (s *SQLStore) dbQueryRow(ctx context.Context, query string, args ...any) *sql.Row {
+	var st = time.Now()
+	defer func() {
+		s.log.Infof("SQL queryRow %s -- args %#v took %s", query, args, time.Since(st))
+	}()
+	return s.db.QueryRow(ctx, query, args...)
 }

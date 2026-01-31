@@ -25,6 +25,8 @@ require (
 	github.com/ncruces/go-sqlite3 v0.30.5 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/petermattis/goid v0.0.0-20260113132338-7c7de50cc741 // indirect
+	github.com/samber/lo v1.52.0 // indirect
+	github.com/spf13/cast v1.10.0 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.27 // indirect
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
