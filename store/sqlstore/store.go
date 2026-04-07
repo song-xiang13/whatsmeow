@@ -48,7 +48,7 @@ type SQLStore struct {
 	preKeyLock sync.Mutex
 
 	contactCache     map[types.JID]*types.ContactInfo
-	contactCacheLock sync.Mutex
+	contactCacheLock sync.RWMutex
 
 	migratedPNSessionsCache *exsync.Set[string]
 }
@@ -808,7 +808,7 @@ func (s *SQLStore) GetAllContacts(ctx context.Context, skipCache bool) (map[type
 	}
 
 	// 否则从数据库查询
-	rows, err := s.dbQuery(ctx, getAllContactsQuery, s.JID)
+	rows, err := s.db.Query(ctx, getAllContactsQuery, s.JID)
 	if err != nil {
 		return nil, err
 	}
@@ -893,7 +893,7 @@ func (s *SQLStore) GetChatSettings(ctx context.Context, chat types.JID) (setting
 }
 
 func (s *SQLStore) GetAllChatSettings(ctx context.Context) ([]types.LocalChatSettings, error) {
-	rows, err := s.dbQuery(ctx, getAllChatSettingsQuery, s.JID)
+	rows, err := s.db.Query(ctx, getAllChatSettingsQuery, s.JID)
 	if err != nil {
 		return nil, err
 	}
@@ -967,7 +967,7 @@ const (
 
 func (s *SQLStore) GetMessageSecretCount(ctx context.Context) (int, error) {
 	var count int
-	err := s.dbQueryRow(ctx, countMsgSecretQuery, s.JID).Scan(&count)
+	err := s.db.QueryRow(ctx, countMsgSecretQuery, s.JID).Scan(&count)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}
@@ -1023,7 +1023,7 @@ func (s *SQLStore) GetMessageSecret(ctx context.Context, chat, sender types.JID,
 }
 
 func (s *SQLStore) GetMessageSessionNumGroupByPeer(ctx context.Context) (map[types.JID]store.MessageSession, error) {
-	rows, err := s.dbQuery(ctx, getMessageSessionNumQuery, s.JID)
+	rows, err := s.db.Query(ctx, getMessageSessionNumQuery, s.JID)
 	if err != nil {
 		return nil, err
 	}
