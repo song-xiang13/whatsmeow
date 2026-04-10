@@ -22,22 +22,6 @@ type ClientConfigTLS struct {
 	ClientHelloHex string `json:"clientHelloHex,omitempty"`
 }
 
-type rawBrowserInfoJSON struct {
-	Version               BrowserTSVersionInfo              `json:"version"`
-	UA                    BrowserTSUAInfo                   `json:"ua"`
-	UserAgentData         BrowserTSUserAgentData            `json:"userAgentData"`
-	Locale                BrowserTSLocaleInfo               `json:"locale"`
-	DeviceInfoFromBackend *BrowserTSBackendDeviceInfoResult `json:"deviceInfoFromBackend,omitempty"`
-	RegistrationPayload   *rawRegistrationPayload           `json:"registrationPayload,omitempty"`
-}
-
-type rawRegistrationPayload struct {
-	UserAgentAppVersion *BrowserTSAppVersion `json:"userAgentAppVersion,omitempty"`
-	DevicePropsVersion  *BrowserTSAppVersion `json:"devicePropsVersion,omitempty"`
-	DevicePropsOS       string               `json:"devicePropsOs,omitempty"`
-	DevicePropsPlatform int32                `json:"devicePropsPlatformType,omitempty"`
-}
-
 // LoadClientConfigFile reads a JSON config file from disk.
 func LoadClientConfigFile(path string) (ClientConfig, error) {
 	data, err := os.ReadFile(path)
@@ -99,39 +83,6 @@ func NewClientWithConfigFile(deviceStore *store.Device, log waLog.Logger, path s
 		return nil, err
 	}
 	return NewClientWithConfig(deviceStore, log, cfg)
-}
-
-// ParseClientPayloadConfig parses either the flattened BrowserTSExtractedConfig shape
-// or the raw JSON shape produced by GetBrowserInfo.js.
-func ParseClientPayloadConfig(data []byte) (ClientPayloadConfig, error) {
-	var direct BrowserTSExtractedConfig
-	if err := json.Unmarshal(data, &direct); err == nil && hasBrowserTSConfigData(direct) {
-		return ClientPayloadConfigFromBrowserTSExtractedConfig(direct)
-	}
-
-	var raw rawBrowserInfoJSON
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return ClientPayloadConfig{}, err
-	}
-
-	extracted := BrowserTSExtractedConfig{
-		Version:               raw.Version,
-		UA:                    raw.UA,
-		UserAgentData:         raw.UserAgentData,
-		Locale:                raw.Locale,
-		DeviceInfoFromBackend: raw.DeviceInfoFromBackend,
-	}
-	if raw.RegistrationPayload != nil {
-		extracted.DevicePropsVersion = raw.RegistrationPayload.DevicePropsVersion
-		if extracted.UA.OS == "" {
-			extracted.UA.OS = raw.RegistrationPayload.DevicePropsOS
-		}
-	}
-
-	if !hasBrowserTSConfigData(extracted) {
-		return ClientPayloadConfig{}, fmt.Errorf("json file doesn't look like a supported browser-ts config")
-	}
-	return ClientPayloadConfigFromBrowserTSExtractedConfig(extracted)
 }
 
 func (cfg ClientConfig) hasConfigData() bool {
