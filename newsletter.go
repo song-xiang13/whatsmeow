@@ -20,7 +20,6 @@ import (
 	"github.com/song-xiang13/whatsmeow/argo"
 	waBinary "github.com/song-xiang13/whatsmeow/binary"
 	"github.com/song-xiang13/whatsmeow/proto/waWa6"
-	"github.com/song-xiang13/whatsmeow/store"
 	"github.com/song-xiang13/whatsmeow/types"
 )
 
@@ -139,7 +138,7 @@ const (
 )
 
 func convertQueryID(cli *Client, queryID string) string {
-	if payload := cli.Store.GetClientPayload(); payload.GetUserAgent().Platform == waWa6.ClientPayload_UserAgent_MACOS.Enum() || payload.GetWebInfo() == nil {
+	if payload := cli.getCurrentClientPayload(); payload != nil && (payload.GetUserAgent().GetPlatform() == waWa6.ClientPayload_UserAgent_MACOS || payload.GetWebInfo() == nil) {
 		switch queryID {
 		case queryFetchNewsletter:
 			return queryFetchNewsletterDesktop
@@ -170,7 +169,7 @@ func convertQueryID(cli *Client, queryID string) string {
 }
 
 func (cli *Client) sendMexIQ(ctx context.Context, queryID string, variables any) (json.RawMessage, error) {
-	if store.BaseClientPayload.GetUserAgent().GetPlatform() == waWa6.ClientPayload_UserAgent_MACOS {
+	if payload := cli.getCurrentClientPayload(); payload != nil && payload.GetUserAgent().GetPlatform() == waWa6.ClientPayload_UserAgent_MACOS {
 		return nil, fmt.Errorf("argo decoding is currently broken")
 	}
 	queryID = convertQueryID(cli, queryID)

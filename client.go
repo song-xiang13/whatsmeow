@@ -23,7 +23,6 @@ import (
 
 	"go.mau.fi/util/exhttp"
 	"go.mau.fi/util/exsync"
-	"go.mau.fi/util/ptr"
 	"go.mau.fi/util/random"
 	"golang.org/x/net/proxy"
 
@@ -189,6 +188,10 @@ type Client struct {
 	websocketHTTP *http.Client
 	preLoginHTTP  *http.Client
 
+	websocketHeaderOverrides http.Header
+	mediaHeaderOverrides     http.Header
+	utlsClientHelloRecord    []byte
+
 	// This field changes the client to act like a Messenger client instead of a WhatsApp one.
 	//
 	// Note that you cannot use a Messenger account just by setting this field, you must use a
@@ -208,6 +211,35 @@ type MessengerConfig struct {
 	UserAgent    string
 	BaseURL      string
 	WebsocketURL string
+}
+
+// ClientOption configures a client during creation.
+type ClientOption func(*Client)
+
+// WithClientPayloadConfig overrides the handshake payload for this client only.
+//
+// Start with DefaultClientPayloadConfig() if you only want to change a few fields.
+func WithClientPayloadConfig(config ClientPayloadConfig) ClientOption {
+	clonedConfig := config.Clone()
+	return func(cli *Client) {
+		cli.GetClientPayload = func() *waWa6.ClientPayload {
+			return clonedConfig.GetClientPayload(cli.Store)
+		}
+	}
+}
+
+// WithAllowedRequestHeaders applies low-risk request header overrides for this client.
+//
+// Only a small allowlist is supported. Transport, websocket negotiation and identity headers
+// such as Host, Connection, Upgrade, Sec-WebSocket-*, User-Agent, Cookie and Accept-Encoding
+// are intentionally ignored.
+func WithAllowedRequestHeaders(headers AllowedRequestHeaders) ClientOption {
+	websocketHeaders := sanitizeAllowedRequestHeaders(headers.Websocket)
+	mediaHeaders := sanitizeAllowedRequestHeaders(headers.Media)
+	return func(cli *Client) {
+		cli.websocketHeaderOverrides = cloneHeaders(websocketHeaders)
+		cli.mediaHeaderOverrides = cloneHeaders(mediaHeaders)
+	}
 }
 
 // Size of buffer for the channel that all incoming XML nodes go through.
@@ -230,18 +262,15 @@ const handlerQueueSize = 2048
 //		panic(err)
 //	}
 //	client := whatsmeow.NewClient(deviceStore, nil)
-func NewClient(deviceStore *store.Device, log waLog.Logger) *Client {
+func NewClient(deviceStore *store.Device, log waLog.Logger, opts ...ClientOption) *Client {
 	if log == nil {
 		log = waLog.Noop
 	}
 	uniqueIDPrefix := random.Bytes(2)
-	baseHTTPClient := &http.Client{
-		Transport: (http.DefaultTransport.(*http.Transport)).Clone(),
-	}
 	cli := &Client{
-		mediaHTTP:          ptr.Clone(baseHTTPClient),
-		websocketHTTP:      ptr.Clone(baseHTTPClient),
-		preLoginHTTP:       ptr.Clone(baseHTTPClient),
+		mediaHTTP:          newDefaultMediaHTTPClient(nil),
+		websocketHTTP:      newDefaultWebsocketHTTPClient(nil),
+		preLoginHTTP:       newDefaultWebsocketHTTPClient(nil),
 		Store:              deviceStore,
 		Log:                log,
 		recvLog:            log.Sub("Recv"),
@@ -289,6 +318,12 @@ func NewClient(deviceStore *store.Device, log waLog.Logger) *Client {
 		"ib":           cli.handleIB,
 		// Apparently there's also an <error> node which can have a code=479 and means "Invalid stanza sent (smax-invalid)"
 	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(cli)
+		}
+	}
+	cli.resetManagedHTTPClients()
 	return cli
 }
 
@@ -378,14 +413,21 @@ func (cli *Client) SetSOCKSProxy(px proxy.Dialer, opts ...SetProxyOptions) {
 
 func (cli *Client) setTransport(transport *http.Transport, opt SetProxyOptions) {
 	if !opt.NoWebsocket {
-		cli.preLoginHTTP.Transport = transport
+		wrappedWebsocketTransport := wrapManagedWebsocketTransport(transport, cli.utlsClientHelloRecord)
+		cli.preLoginHTTP.Transport = wrappedWebsocketTransport
 		if !opt.OnlyLogin {
-			cli.websocketHTTP.Transport = transport
+			cli.websocketHTTP.Transport = wrappedWebsocketTransport
 		}
 	}
 	if !opt.NoMedia {
-		cli.mediaHTTP.Transport = transport
+		cli.mediaHTTP.Transport = wrapManagedMediaTransport(transport, cli.utlsClientHelloRecord)
 	}
+}
+
+func (cli *Client) resetManagedHTTPClients() {
+	cli.mediaHTTP = newDefaultMediaHTTPClient(cli.utlsClientHelloRecord)
+	cli.websocketHTTP = newDefaultWebsocketHTTPClient(cli.utlsClientHelloRecord)
+	cli.preLoginHTTP = newDefaultWebsocketHTTPClient(cli.utlsClientHelloRecord)
 }
 
 // SetMediaHTTPClient sets the HTTP client used to download media.
@@ -538,6 +580,7 @@ func (cli *Client) unlockedConnect(ctx context.Context) error {
 		//fs.HTTPHeaders.Set("Sec-Fetch-Mode", "websocket")
 		//fs.HTTPHeaders.Set("Sec-Fetch-Site", "cross-site")
 	}
+	applyHeaderOverrides(fs.HTTPHeaders, cli.websocketHeaderOverrides)
 	if err := fs.Connect(ctx); err != nil {
 		fs.Close(0)
 		return err

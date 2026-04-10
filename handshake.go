@@ -92,12 +92,7 @@ func (cli *Client) doHandshake(ctx context.Context, fs *socket.FrameSocket, ephe
 		return fmt.Errorf("failed to mix noise private key in: %w", err)
 	}
 
-	var clientPayload *waWa6.ClientPayload
-	if cli.GetClientPayload != nil {
-		clientPayload = cli.GetClientPayload()
-	} else {
-		clientPayload = cli.Store.GetClientPayload()
-	}
+	clientPayload := cli.getCurrentClientPayload()
 
 	clientFinishPayloadBytes, err := proto.Marshal(clientPayload)
 	if err != nil {

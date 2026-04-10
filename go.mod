@@ -5,16 +5,18 @@ go 1.25.0
 toolchain go1.26.0
 
 require (
+	github.com/andybalholm/brotli v1.2.1
 	github.com/beeper/argo-go v1.1.2
 	github.com/boombuler/barcode v1.1.0
 	github.com/coder/websocket v1.8.14
 	github.com/google/uuid v1.6.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
+	github.com/klauspost/compress v1.18.5
 	github.com/ncruces/go-sqlite3 v0.30.5
+	github.com/refraction-networking/utls v1.8.2
 	github.com/rs/zerolog v1.34.0
 	go.mau.fi/libsignal v0.2.1
 	go.mau.fi/util v0.9.6
-	go.mau.fi/whatsmeow v0.0.0-20260327181659-02ec817e7cf4
 	golang.org/x/crypto v0.48.0
 	golang.org/x/net v0.50.0
 	google.golang.org/protobuf v1.36.11

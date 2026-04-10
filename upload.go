@@ -236,6 +236,7 @@ func (cli *Client) rawUpload(ctx context.Context, dataToUpload io.Reader, upload
 	req.ContentLength = int64(uploadSize)
 	req.Header.Set("Origin", socket.Origin)
 	req.Header.Set("Referer", socket.Origin+"/")
+	applyHeaderOverrides(req.Header, cli.mediaHeaderOverrides)
 
 	httpResp, err := cli.mediaHTTP.Do(req)
 	if err != nil {

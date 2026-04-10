@@ -1,0 +1,60 @@
+{
+  "payload": {
+    "version": {
+      "VERSION_BASE": "2.3000.1036426764"
+    },
+    "ua": {
+      "os": "Windows",
+      "osVersion": "10",
+      "browser": "chrome"
+    },
+    "userAgentData": {
+      "browserName": "Chrome",
+      "browserFullVersion": "146.0.0.0",
+      "platformName": "Windows",
+      "platformFullVersion": "10",
+      "deviceName": "Unknown"
+    },
+    "locale": {
+      "localeLanguageIso6391": "zh",
+      "localeCountryIso31661Alpha2": "CN"
+    },
+    "devicePropsVersion": {
+      "primary": 10
+    },
+    "deviceInfoFromBackend": {
+      "languageCode": "zh",
+      "locationCode": "US",
+      "osBuildNumber": "0.1",
+      "mcc": "000",
+      "mnc": "000"
+    }
+  },
+  "requestHeaders": {
+    "websocket": {
+      "Accept-Language": [
+        "zh-CN,zh;q=0.9"
+      ],
+      "Cache-Control": [
+        "no-cache"
+      ],
+      "Pragma": [
+        "no-cache"
+      ]
+    },
+    "media": {
+      "Accept-Language": [
+        "zh-CN,zh;q=0.9"
+      ],
+      "Cache-Control": [
+        "no-cache"
+      ],
+      "Pragma": [
+        "no-cache"
+      ]
+    }
+  },
+  "tls": {
+    "clientHelloHex": "1603010200010001fc030392740c68aba1ee226cfb15d9dbf3bedbc7f9beea0a2dbd10a73163ed8bb1787820d39d5f23f8949806e1e759911b56bd1d15b07eaf360623bae891c855b8e233120036aaaa130113021303c02cc02bcca9c030c02fcca8c024c023c00ac009c028c027c014c013009d009c003d003c0035002fc008c012000a0100017d0a0a00000000001f001d00001a756a70352e786e2d2d6768717535666d3237623637772e636f6d00170000ff01000100000a000c000a2a2a001d001700180019000b000201000010000b000908687474702f312e31000500050100000000000d0018001604030804040105030203080508050501080606010201001200000033002b00292a2a000100001d0020032859de395bae1e2d2d61fb5cbe98aa2828e5b9fbaca6375f9f72603f46da57002d00020101002b000b0adada0304030303020301fafa000100001500b200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  }
+}
