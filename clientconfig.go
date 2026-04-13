@@ -1,6 +1,7 @@
 package whatsmeow
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,6 +10,18 @@ import (
 	"github.com/song-xiang13/whatsmeow/store"
 	waLog "github.com/song-xiang13/whatsmeow/util/log"
 )
+
+//go:embed whatsmeow.config.sample.json
+var defaultClientConfigJSONRaw []byte
+var DefaultClientConfig = ClientConfig{}
+
+func init() {
+	var err error
+	DefaultClientConfig, err = ParseClientConfig(defaultClientConfigJSONRaw)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse default client config: %w", err))
+	}
+}
 
 // ClientConfig is a minimal file-friendly config for wiring a client with payload,
 // request-header and TLS fingerprint overrides.
