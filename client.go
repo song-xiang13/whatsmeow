@@ -231,8 +231,8 @@ func WithClientPayloadConfig(config ClientPayloadConfig) ClientOption {
 // WithAllowedRequestHeaders applies low-risk request header overrides for this client.
 //
 // Only a small allowlist is supported. Transport, websocket negotiation and identity headers
-// such as Host, Connection, Upgrade, Sec-WebSocket-*, User-Agent, Cookie and Accept-Encoding
-// are intentionally ignored.
+// such as Host, Connection, Upgrade, Sec-WebSocket-*, Cookie and Accept-Encoding are
+// intentionally ignored.
 func WithAllowedRequestHeaders(headers AllowedRequestHeaders) ClientOption {
 	websocketHeaders := sanitizeAllowedRequestHeaders(headers.Websocket)
 	mediaHeaders := sanitizeAllowedRequestHeaders(headers.Media)
