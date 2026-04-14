@@ -30,8 +30,8 @@ func TestSanitizeAllowedRequestHeaders(t *testing.T) {
 	if got.Get("Pragma") != "no-cache" {
 		t.Fatalf("unexpected Pragma: got %q", got.Get("Pragma"))
 	}
-	if got.Get("User-Agent") != "" {
-		t.Fatalf("expected User-Agent to be stripped, got %q", got.Get("User-Agent"))
+	if got.Get("User-Agent") != "Mozilla/5.0" {
+		t.Fatalf("unexpected User-Agent: got %q", got.Get("User-Agent"))
 	}
 	if got.Get("Cookie") != "" {
 		t.Fatalf("expected Cookie to be stripped, got %q", got.Get("Cookie"))
@@ -62,8 +62,8 @@ func TestWithAllowedRequestHeaders(t *testing.T) {
 	if got := cli.websocketHeaderOverrides.Get("Accept-Language"); got != "zh-CN,zh;q=0.9" {
 		t.Fatalf("unexpected websocket Accept-Language: got %q", got)
 	}
-	if got := cli.websocketHeaderOverrides.Get("User-Agent"); got != "" {
-		t.Fatalf("expected websocket User-Agent to be stripped, got %q", got)
+	if got := cli.websocketHeaderOverrides.Get("User-Agent"); got != "Mozilla/5.0" {
+		t.Fatalf("unexpected websocket User-Agent: got %q", got)
 	}
 	if got := cli.mediaHeaderOverrides.Get("Cache-Control"); got != "no-cache" {
 		t.Fatalf("unexpected media Cache-Control: got %q", got)

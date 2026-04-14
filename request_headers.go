@@ -4,9 +4,9 @@ import "net/http"
 
 // AllowedRequestHeaders contains opt-in request header overrides for test environments.
 //
-// Only low-risk headers are supported here. Sensitive transport and identity headers such as
-// Host, Connection, Upgrade, Sec-WebSocket-*, User-Agent, Cookie and Accept-Encoding are
-// intentionally ignored.
+// Only a small safe-ish subset of browser-like headers is supported here. Sensitive transport
+// and identity headers such as Host, Connection, Upgrade, Sec-WebSocket-*, Cookie and
+// Accept-Encoding are intentionally ignored.
 type AllowedRequestHeaders struct {
 	Websocket http.Header
 	Media     http.Header
@@ -16,6 +16,7 @@ var allowedRequestHeaderNames = map[string]struct{}{
 	"Accept-Language": {},
 	"Cache-Control":   {},
 	"Pragma":          {},
+	"User-Agent":      {},
 }
 
 func sanitizeAllowedRequestHeaders(headers http.Header) http.Header {
